@@ -57,6 +57,10 @@ public class CustomElasticsearchContainerConfigTest {
                 elasticsearchContainer.getDockerImageName()
         );
         assertEquals(
+                "/local_elasticsearch",
+                elasticsearchContainer.getContainerName()
+        );
+        assertEquals(
                 19200,
                 elasticsearchContainer.getMappedPort(ElasticsearchContainerConfig.ELASTICSEARCH_DEFAULT_PORT)
         );

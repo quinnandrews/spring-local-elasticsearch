@@ -1,33 +1,39 @@
 {
   "properties": [
     {
-      "name": "spring.local.elasticsearch.enabled",
+      "name": "spring.local.elasticsearch.engaged",
       "type": "java.lang.Boolean",
-      "description": "Whether or not the embedded, containerized Elasticsearch server is configured and activated.",
+      "description": "Whether the containerized Elasticsearch server should be configured and started when the Application starts.",
       "defaultValue": false
     },
     {
       "name": "spring.local.elasticsearch.container.image",
       "type": "java.lang.String",
-      "description": "The name of the Docker Image containing the desired version of Elasticsearch (example: docker.elastic.co/elasticsearch/elasticsearch:8.10.2). If undefined, the Testcontainers default of 'docker.elastic.co/elasticsearch/elasticsearch:7.9.2' is used.",
+      "description": "The Docker Image with the chosen version of Elasticsearch (example: docker.elastic.co/elasticsearch/elasticsearch:8.10.2). If undefined, Testcontainers will use its default ('docker.elastic.co/elasticsearch/elasticsearch:7.9.2').",
       "defaultValue": "docker.elastic.co/elasticsearch/elasticsearch:7.9.2"
+    },
+    {
+      "name": "spring.local.elasticsearch.container.name",
+      "type": "java.lang.String",
+      "description": "The name to use for the Docker Container when started. If undefined, a random name is used. Random names are preferred for Integration Tests, but when running the Application locally, a fixed name is useful, since it allows developers to find the running container with a consistent, predictable name.",
+      "defaultValue": "[random name assignment]"
     },
     {
       "name": "spring.local.elasticsearch.container.port",
       "type": "java.lang.Integer",
-      "description": "The port on the Docker Container that maps to the Elasticsearch port inside the container. If undefined, a random port is used, which is preferred when performing Integration Tests. When running the Application locally, however, defining a fixed port can be useful.",
+      "description": "The port on the Docker Container to map with the PostgreSQL port inside the container. If undefined, a random port is used. Random ports are preferred for Integration Tests, but when running the Application locally, a fixed port is useful, since it allows developers to configure any connecting, external tools or apps with a consistent, predictable port.",
       "defaultValue": "[random port assignment]"
     },
     {
       "name": "spring.local.elasticsearch.container.log.follow",
       "type": "java.lang.Boolean",
-      "description": "Whether or not the Application should log the log output produced by the container.",
+      "description": "Whether the Application should log the output produced by the Container's log.",
       "defaultValue": false
     },
     {
       "name": "spring.local.elasticsearch.password",
       "type": "java.lang.String",
-      "description": "The password for the username the Application will use to connect to the Elasticsearch server. If undefined, defaults to the Elasticsearch default of 'changeme'. Note: The username is not configurable. It is defined as 'elastic' in all cases.",
+      "description": "The password for the username the Application will use to connect. If undefined, Testcontainers will use the Elasticsearch default ('changeme'). NOTE: The username is not configurable. It will be 'elastic' in all cases.",
       "defaultValue": "changeme"
     }
   ]

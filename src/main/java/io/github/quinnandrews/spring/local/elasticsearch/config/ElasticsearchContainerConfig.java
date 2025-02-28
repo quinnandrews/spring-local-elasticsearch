@@ -10,7 +10,6 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -35,7 +34,7 @@ import java.util.Optional;
  *
  * @author Quinn Andrews
  */
-@ConditionalOnProperty(name="spring.local.elasticsearch.enabled",
+@ConditionalOnProperty(name="spring.local.elasticsearch.engaged",
                        havingValue="true",
                        matchIfMissing = true)
 @Configuration
@@ -49,13 +48,24 @@ public class ElasticsearchContainerConfig {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchContainerConfig.class);
 
     private final String containerImage;
+    private final String containerName;
     private final Integer containerPort;
     private final Boolean followContainerLog;
     private final String password;
 
-    @Autowired
+    /**
+     * Constructs an instance of this Configuration Class with the given properties.
+     *
+     * @param containerImage      The Docker Image to use as the Container (optional).
+     * @param containerName       The name to use for the Docker Container when started.
+     * @param containerPort       The port on the Container that should map to PostgreSQL (optional).
+     * @param followContainerLog  Whether to log the output produced by the Container's logs (optional).
+     * @param password            The password for the Elasticsearch 'elastic' user (optional).
+     */
     public ElasticsearchContainerConfig(@Value("${spring.local.elasticsearch.container.image:#{null}}")
                                         final String containerImage,
+                                        @Value("${spring.local.elasticsearch.container.name:#{null}}")
+                                        final String containerName,
                                         @Value("${spring.local.elasticsearch.container.port:#{null}}")
                                         final Integer containerPort,
                                         @Value("${spring.local.elasticsearch.container.log.follow:#{false}}")
@@ -63,14 +73,15 @@ public class ElasticsearchContainerConfig {
                                         @Value("${spring.local.elasticsearch.password:#{null}}")
                                         final String password) {
         this.containerImage = containerImage;
+        this.containerName = containerName;
         this.containerPort = containerPort;
         this.followContainerLog = followContainerLog;
         this.password = password;
     }
 
     /**
-     * Initializes a Testcontainers Bean that runs ElasticsearchL inside a Docker Container
-     * with the given configuration.
+     * Returns a Testcontainers Bean that runs Elasticsearch inside a
+     * Docker Container with the given configuration.
      *
      * @return ElasticsearchContainer
      */
@@ -81,15 +92,17 @@ public class ElasticsearchContainerConfig {
                         .orElse(ELASTICSEARCH_DEFAULT_IMAGE))
         );
         Optional.ofNullable(containerPort).ifPresent(cp ->
-                container.withCreateContainerCmdModifier(cmd -> cmd.withHostConfig(
-                        new HostConfig().withPortBindings(
-                                new PortBinding(Ports.Binding.bindPort(cp),
-                                        new ExposedPort(ELASTICSEARCH_DEFAULT_PORT)),
-                                new PortBinding(Ports.Binding.empty(),
-                                        new ExposedPort(9300))
-                                )
-                ))
-        );
+                container.withCreateContainerCmdModifier(cmd -> cmd
+                        .withName(containerName)
+                        .withHostConfig(
+                                new HostConfig().withPortBindings(
+                                        new PortBinding(
+                                                Ports.Binding.bindPort(cp),
+                                                new ExposedPort(ELASTICSEARCH_DEFAULT_PORT)),
+                                        new PortBinding(
+                                                Ports.Binding.empty(),
+                                                new ExposedPort(9300))
+                                ))));
         Optional.ofNullable(password).ifPresent(container::withPassword);
         if (followContainerLog) {
             container.withLogConsumer(new Slf4jLogConsumer(logger));
@@ -103,26 +116,28 @@ public class ElasticsearchContainerConfig {
                         
                             Running ElasticsearchContainer for development and testing.
                         
-                            Built with Docker Image: {0}
-                            Host Address URL: {1}
-                            Username: {2}
-                            Password: {3}
-
-                            Note: The port referenced in the Host Address URL is a port to
-                            access the container. Inside the container Elasticsearch is on
-                            port 9200 as usual.
-                                  
+                            Container: {0}
+                            Image: {1}
+                            Port Mapping: {2}:{3}
+                        
+                            Elasticsearch Host Address URL: {4}
+                            Username: {5}
+                            Password: {6}
+                        
                         |+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|+|
                         *************************************************************************************
                         """,
+                container.getContainerName(),
                 container.getDockerImageName(),
+                String.valueOf(container.getMappedPort(ELASTICSEARCH_DEFAULT_PORT)),
+                String.valueOf(ELASTICSEARCH_DEFAULT_PORT),
                 container.getHttpHostAddress(),
                 ELASTICSEARCH_DEFAULT_USERNAME,
                 container.getEnvMap().get(ELASTICSEARCH_PASSWORD_ENV_KEY)));
         return container;
     }
 
-    @ConditionalOnProperty(name="spring.local.elasticsearch.enabled",
+    @ConditionalOnProperty(name="spring.local.elasticsearch.engaged",
                            havingValue="true",
                            matchIfMissing = true)
     @Configuration
@@ -135,8 +150,8 @@ public class ElasticsearchContainerConfig {
         }
 
         /**
-         * Initializes a Spring Bean that instructs how the Elasticsearch RestClient should
-         * be configured.
+         * Returns a Spring Bean instructing how the Elasticsearch RestClient
+         * should be configured.
          *
          * @return ClientConfiguration
          */
